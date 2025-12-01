@@ -9,7 +9,7 @@ pushd "%~dp0"
 cls
 Call :Print Dolby Atmos Binauralizer
 Call :Print Script to spatialize Dolby Atmos tracks, using OpenAL Soft HRTF
-Call :Print Version 1.1
+Call :Print Version 1.1.1
 
 If not exist "CavernizeGUI.exe" (
 	Call :Print [91mCavernizeGUI.exe does not exist.[0m
