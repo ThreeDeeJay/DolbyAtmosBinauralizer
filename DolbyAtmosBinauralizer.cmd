@@ -9,13 +9,14 @@ pushd "%~dp0"
 cls
 Call :Print Dolby Atmos Binauralizer
 Call :Print Script to spatialize Dolby Atmos tracks, using OpenAL Soft HRTF
+Call :Print Version 1.1
+
 If not exist "CavernizeGUI.exe" (
 	Call :Print [91mCavernizeGUI.exe does not exist.[0m
 	Call :Print [96mPress any key to check again after you've manually copied the files, and if not found, open the browser to download it and then extract it along with the other files into this folder...[0m
 	Pause >Nul
 	If not exist "CavernizeGUI.exe" (Start https://cavern.sbence.hu/cavern/downloading.php?get=cavernize_gui)
 	)
-
 If not exist "truehdd.exe" (
 	If exist "%AppData%\Cavernize\truehdd\truehdd.exe" (
 		Copy "%AppData%\Cavernize\truehdd\truehdd.exe" "%~dp0truehdd.exe" 1>NUL 2>&1
