@@ -9,7 +9,7 @@ pushd "%~dp0"
 cls
 Call :Print Dolby Atmos Binauralizer
 Call :Print Script to spatialize Dolby Atmos tracks, using OpenAL Soft HRTF
-Call :Print Version 1.1.1
+Call :Print Version 1.2.0
 
 If not exist "CavernizeGUI.exe" (
 	Call :Print [91mCavernizeGUI.exe does not exist.[0m
@@ -19,7 +19,7 @@ If not exist "CavernizeGUI.exe" (
 	)
 If not exist "truehdd.exe" (
 	If exist "%AppData%\Cavernize\truehdd\truehdd.exe" (
-		Copy "%AppData%\Cavernize\truehdd\truehdd.exe" "%~dp0truehdd.exe" 1>NUL 2>&1
+		Copy "%AppData%\Cavernize\truehdd\truehdd.exe" "%~dp0truehdd.exe" >> DolbyAtmosBinauralizer.log 2>&1
 		) else (
 		Set FileNotFound=True
 		Call :Print [91mtruehdd.exe does not exist.[0m
@@ -61,7 +61,7 @@ If "!FileNotFound!"=="True" (
 	GoTo :Begin
 	)
 
-If "%1"=="" (
+If "%~1"=="" (
 	set /p Input=[96mDrag one or more files into this script file directly or into this window, then press Enter:[0m 
 	For %%I in (!Input!) do (
 		IF EXIST "%%~I" (
@@ -91,32 +91,37 @@ Exit
 :Decode
 Echo.
 Call :Print [7m"%~1"[0m
-MkDir "%AppData%\Cavernize\truehdd\" 1>NUL 2>&1
+MkDir "%AppData%\Cavernize\truehdd\" >> DolbyAtmosBinauralizer.log 2>&1
 If not exist "%AppData%/Cavernize/truehdd.version" (
 	Call :Print "" >"%AppData%/Cavernize/truehdd.version"
 	)
 If not exist "%AppData%\Cavernize\truehdd\truehdd.exe" (
 	If exist "truehdd.exe" (
-		Copy "truehdd.exe" "%AppData%\Cavernize\truehdd\truehdd.exe" 1>NUL 2>&1
+		Copy "truehdd.exe" "%AppData%\Cavernize\truehdd\truehdd.exe" >> DolbyAtmosBinauralizer.log 2>&1
 		)
 	)
 For %%L in ("%~1") do (
-	Call :PrintLogRun CavernizeGUI.exe -input "%%~L" -format LimitlessAudio -output "%%~dpL%%~nL.laf"
-	If not exist "%%~dpL%%~nL.laf" (
-		Call :Print [93mFailed to generate "%%~dpL%%~nL.laf". Trying alternative method...[0m
+	If not defined ConversionMethodPrompted (
+		Set ConversionMethodPrompted=True
+		Call :Print [96mPress Enter to use piping ^(faster and less disk space usage^) or type anything then Enter for separate command calls ^(in case piping fails or hangs^).[0m
+		CALL :PromptInput ConversionMethod
+		)
+	IF not defined ConversionMethod (
+		Call :PrintLogRun CavernizeGUI.exe -input "%%~L" -format LimitlessAudio -output "%%~dpL%%~nL.laf
+	) else (
 		Call :PrintLogRun ffmpeg.exe -y -i "%%~L" -c copy -f truehd "%%~dpL%%~nL.input"
 		Call :PrintLogRun truehdd.exe decode --progress "%%~dpL%%~nL.input" --output-path "%%~dpL%%~nL"
-		If exist "%%~dpL%%~nL.input" (Del "%%~dpL%%~nL.input" 1>NUL 2>&1)
+		If exist "%%~dpL%%~nL.input" (Del "%%~dpL%%~nL.input" >> DolbyAtmosBinauralizer.log 2>&1)
 		Call :PrintLogRun CavernizeGUI.exe -input "%%~dpL%%~nL.atmos" -format LimitlessAudio -output "%%~dpL%%~nL.laf"
-		If exist "%%~dpL%%~nL.atmos" (Del "%%~dpL%%~nL.atmos" 1>NUL 2>&1)
-		If exist "%%~dpL%%~nL.atmos.audio" (Del "%%~dpL%%~nL.atmos.audio" 1>NUL 2>&1)
-		If exist "%%~dpL%%~nL.atmos.metadata" (Del "%%~dpL%%~nL.atmos.metadata" 1>NUL 2>&1)
+		If exist "%%~dpL%%~nL.atmos" (Del "%%~dpL%%~nL.atmos" >> DolbyAtmosBinauralizer.log 2>&1)
+		If exist "%%~dpL%%~nL.atmos.audio" (Del "%%~dpL%%~nL.atmos.audio" >> DolbyAtmosBinauralizer.log 2>&1)
+		If exist "%%~dpL%%~nL.atmos.metadata" (Del "%%~dpL%%~nL.atmos.metadata" >> DolbyAtmosBinauralizer.log 2>&1)
 		)
 	Call :PrintLogRun allafplay.exe -render "hrtf,f32" "%%~dpL%%~nL.laf"
-	If exist "%%~dpL%%~nL.laf" (Del "%%~dpL%%~nL.laf" 1>NUL 2>&1)
-	If exist "%%~nL.caf" (Move "%%~nL.caf" "%%~dpL%%~nL.caf" 1>NUL 2>&1)
+	If exist "%%~dpL%%~nL.laf" (Del "%%~dpL%%~nL.laf" >> DolbyAtmosBinauralizer.log 2>&1)
+	If exist "%%~nL.caf" (Move "%%~nL.caf" "%%~dpL%%~nL.caf" >> DolbyAtmosBinauralizer.log 2>&1)
 	Call :PrintLogRun ffmpeg.exe -y -i "%%~dpL%%~nL.caf" -c:a flac -compression_level 12 -strict -2 "%%~dpL%%~nL.flac"
-	If exist "%%~dpL%%~nL.caf" (Del "%%~dpL%%~nL.caf" 1>NUL 2>&1)
+	If exist "%%~dpL%%~nL.caf" (Del "%%~dpL%%~nL.caf" >> DolbyAtmosBinauralizer.log 2>&1)
 	Call :Print [0m
 	If exist "%%~dpL%%~nL.flac" (
 		Call :Print [92m"%%~dpL%%~nL.flac" has been generated.[0m
@@ -139,6 +144,11 @@ Exit /B
 
 :PrintLogRun
 Echo [94m%*[0m
-Echo %*>>Log.txt
+Echo %* >> DolbyAtmosBinauralizer.log 2>&1
 %*
 Exit /B
+
+:PromptInput
+SET %1=
+SET /P %1=%2
+EXIT /B 0
