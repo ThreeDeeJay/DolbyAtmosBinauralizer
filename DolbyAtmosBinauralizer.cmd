@@ -107,7 +107,7 @@ For %%L in ("%~1") do (
 		CALL :PromptInput ConversionMethod
 		)
 	IF not defined ConversionMethod (
-		Call :PrintLogRun CavernizeGUI.exe -input "%%~L" -format LimitlessAudio -output "%%~dpL%%~nL.laf
+		Call :PrintLogRun CavernizeGUI.exe -input "%%~L" -format LimitlessAudio -output "%%~dpL%%~nL.laf"
 	) else (
 		Call :PrintLogRun ffmpeg.exe -y -i "%%~L" -c copy -f truehd "%%~dpL%%~nL.input"
 		Call :PrintLogRun truehdd.exe decode --progress "%%~dpL%%~nL.input" --output-path "%%~dpL%%~nL"
